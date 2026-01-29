@@ -17,4 +17,6 @@ urlpatterns = [
     path('admin-panel/', views.admin_dashboard, name='admin_dashboard'),
     path('admin/add-problem/', views.add_problem, name='add_problem'),
     path('admin/add-contest/', views.add_contest, name='add_contest'),
+    path('problem/<int:id>/submit/', views.submit_solution, name='submit_solution'),
+    path('run/code/', views.run_code, name='run_code'), # This name matches {% url 'run_code' %}
 ]

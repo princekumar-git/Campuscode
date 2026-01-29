@@ -1,33 +1,39 @@
+import json
+import requests
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
-from .models import User, Problem, Contest, ForumPost
+from django.http import JsonResponse
+from django.db.models import Count
+
+# Make sure to import TestCase and Submission explicitly
+from .models import User, Problem, Contest, ForumPost, TestCase, Submission
+
+PISTON_API = "https://emkc.org/api/v2/piston/execute"
+
+# =========================================
+# 1. Authentication Views 
+# =========================================
 
 def index(request):
     if request.user.is_authenticated:
         return redirect('dashboard')
     return render(request, 'index.html')
 
-# views.py
-
 def signup_view(request):
     if request.method == 'POST':
-        # 1. Get data (No separate username field)
         name = request.POST.get('name')
         email = request.POST.get('email')
         password = request.POST.get('password')
 
-        # 2. Check if Email exists
         if User.objects.filter(email=email).exists():
             messages.error(request, 'Email already exists.')
             return redirect('index')
 
-        # 3. Create User (Set username = email)
         user = User.objects.create_user(username=email, email=email, password=password)
         user.first_name = name 
-        
-        # 4. Set Default Stats
         user.role = 'Student'
         user.streak = 1
         user.global_rank = 9999
@@ -35,7 +41,6 @@ def signup_view(request):
         user.xp = 10
         user.save()
 
-        # 5. Log them in
         login(request, user)
         return redirect('dashboard')
     
@@ -46,18 +51,12 @@ def login_view(request):
         email = request.POST.get('email')
         password = request.POST.get('password')
         
-        # 1. Find the user with this email first
         try:
-            # We filter by email to find the User object
             user_obj = User.objects.get(email=email)
-            
-            # 2. Use that user's ACTUAL username to authenticate
             user = authenticate(request, username=user_obj.username, password=password)
             
             if user is not None:
                 login(request, user)
-                
-                # 3. Check Role
                 if getattr(user, 'role', 'Student') == 'Admin':
                     return redirect('admin_dashboard')
                 return redirect('dashboard')
@@ -66,14 +65,16 @@ def login_view(request):
         
         except User.DoesNotExist:
             messages.error(request, 'No account found with this email.')
-        except User.MultipleObjectsReturned:
-            messages.error(request, 'Multiple accounts found with this email. Please contact support.')
             
     return redirect('index')
 
 def logout_view(request):
     logout(request)
     return redirect('index')
+
+# =========================================
+# 2. Main Platform Views
+# =========================================
 
 @login_required
 def dashboard(request):
@@ -104,21 +105,18 @@ def forum(request):
     posts = ForumPost.objects.order_by('-date_posted')
     return render(request, 'forum.html', {'posts': posts})
 
-# views.py
 @login_required
 def profile(request):
     if request.method == 'POST':
         user = request.user
         new_username = request.POST.get('username')
         
-        # Check uniqueness if username changed
         if new_username and new_username != user.username:
             if User.objects.filter(username=new_username).exists():
                 messages.error(request, 'That username is already taken.')
                 return redirect('profile')
             user.username = new_username
 
-        # Standard fields
         user.first_name = request.POST.get('first_name')
         user.last_name = request.POST.get('last_name')
         user.college = request.POST.get('college')
@@ -128,11 +126,14 @@ def profile(request):
         return redirect('profile')
         
     return render(request, 'profile.html')
-        
-    return render(request, 'profile.html')
+
 @login_required
 def stats(request):
     return render(request, 'report.html')
+
+# =========================================
+# 3. Admin Views
+# =========================================
 
 @login_required
 def admin_dashboard(request):
@@ -146,8 +147,9 @@ def admin_dashboard(request):
 
 @login_required
 def add_problem(request):
+    if request.user.role != 'Admin': return redirect('dashboard')
     if request.method == 'POST':
-        Problem.objects.create(
+        problem = Problem.objects.create(
             title=request.POST.get('title'),
             difficulty=request.POST.get('difficulty'),
             points=request.POST.get('points'),
@@ -159,11 +161,19 @@ def add_problem(request):
             sample_input=request.POST.get('sample_input'),
             sample_output=request.POST.get('sample_output')
         )
+        # Create a default visible test case matching the sample
+        TestCase.objects.create(
+            problem=problem,
+            input_data=request.POST.get('sample_input'),
+            expected_output=request.POST.get('sample_output'),
+            is_hidden=False
+        )
         messages.success(request, 'Problem Added')
     return redirect('admin_dashboard')
 
 @login_required
 def add_contest(request):
+    if request.user.role != 'Admin': return redirect('dashboard')
     if request.method == 'POST':
         Contest.objects.create(
             title=request.POST.get('title'),
@@ -176,3 +186,123 @@ def add_contest(request):
         )
         messages.success(request, 'Contest Created')
     return redirect('admin_dashboard')
+
+# =========================================
+# 4. Code Execution & Grading Views
+# =========================================
+
+@csrf_exempt
+@login_required
+def run_code(request):
+    """
+    Executes code against Sample Input.
+    """
+    if request.method != "POST":
+        return JsonResponse({"error": "POST request required"}, status=400)
+
+    try:
+        data = json.loads(request.body)
+        code = data.get("code")
+        language = data.get("language", "python")
+        user_input = data.get("stdin", "")
+
+        payload = {
+            "language": language,
+            "version": "*",
+            "files": [{"content": code}],
+            "stdin": user_input
+        }
+        
+        response = requests.post(PISTON_API, json=payload, timeout=5)
+        result = response.json()
+        
+        return JsonResponse(result)
+        
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@csrf_exempt
+@login_required
+def submit_solution(request, id):
+    """
+    Grading Logic: Runs against ALL test cases.
+    """
+    if request.method != "POST":
+        return JsonResponse({"status": "error", "message": "Method not allowed"}, status=405)
+
+    try:
+        data = json.loads(request.body)
+        code = data.get("code")
+        language = data.get("language", "python")
+
+        problem = get_object_or_404(Problem, id=id)
+        
+        # [FIX 1] Use explicit filter instead of reverse relation to satisfy Pylance
+        test_cases = TestCase.objects.filter(problem=problem)
+
+        if not test_cases.exists():
+            # Create a dummy object to safely run loop
+            class DummyTC:
+                def __init__(self, i, o): self.input_data, self.expected_output, self.is_hidden = i, o, False
+            test_cases = [DummyTC(problem.sample_input, problem.sample_output)]
+
+        results = []
+        all_passed = True
+
+        for tc in test_cases:
+            payload = {
+                "language": language,
+                "version": "*",
+                "files": [{"content": code}],
+                "stdin": tc.input_data
+            }
+
+            try:
+                response = requests.post(PISTON_API, json=payload, timeout=5)
+                api_result = response.json()
+
+                if 'run' not in api_result or api_result['run']['code'] != 0:
+                    err_msg = api_result.get('run', {}).get('stderr', 'Unknown Error') or api_result.get('message', 'Error')
+                    return JsonResponse({
+                        "status": "error", 
+                        "message": "Runtime/Compilation Error",
+                        "details": err_msg
+                    })
+
+                # [FIX 2] Handle NoneType for stdout/expected output using (var or "")
+                actual_output = (api_result['run'].get('stdout') or "").strip()
+                expected_output = (tc.expected_output or "").strip()
+
+                if actual_output == expected_output:
+                    results.append({"status": "Passed"})
+                else:
+                    all_passed = False
+                    results.append({
+                        "status": "Failed",
+                        "input": "Hidden Test Case" if tc.is_hidden else tc.input_data,
+                        "expected": "Hidden" if tc.is_hidden else expected_output,
+                        "actual": actual_output
+                    })
+                    break 
+
+            except Exception as e:
+                return JsonResponse({"status": "error", "message": "Execution API Failed", "details": str(e)})
+
+        if all_passed:
+            has_solved = Submission.objects.filter(user=request.user, problem=problem, passed=True).exists()
+            msg = "Correct Answer!"
+            
+            if not has_solved:
+                request.user.xp += problem.points
+                request.user.save()
+                msg += f" You earned +{problem.points} XP."
+            
+            Submission.objects.create(user=request.user, problem=problem, code=code, passed=True)
+            return JsonResponse({"status": "success", "message": msg})
+        else:
+            Submission.objects.create(user=request.user, problem=problem, code=code, passed=False)
+            return JsonResponse({"status": "failed", "results": results})
+
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)}, status=500)
