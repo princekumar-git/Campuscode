@@ -1,61 +1,307 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{{ contest.title }} - Overview</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script>
-        tailwind.config = { darkMode: 'class', theme: { extend: { colors: { primary: { 500: '#1E4A7A' } } } } }
-    </script>
-</head>
-<body class="bg-gray-50 min-h-screen font-sans p-8">
-    <div class="max-w-5xl mx-auto">
-        <a href="{% url 'contests' %}" class="text-gray-500 hover:text-primary-500 mb-4 inline-block"><i class="fas fa-arrow-left"></i> Back to Contests</a>
-        
-        <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-            <div class="bg-primary-500 p-8 text-white">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <h1 class="text-3xl font-bold mb-2">{{ contest.title }}</h1>
-                        <p class="opacity-90">{{ contest.start_time|date:"F d, Y • h:i A" }}</p>
-                    </div>
-                    <div class="bg-white/20 p-3 rounded text-center min-w-[100px]">
-                        <span class="block text-2xl font-bold">{{ contest.duration }}</span>
-                        <span class="text-xs uppercase">Duration</span>
-                    </div>
-                </div>
-            </div>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 
-            <div class="p-8">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <div class="md:col-span-2">
-                        <h3 class="text-xl font-bold mb-4 border-b pb-2">Description</h3>
-                        <p class="text-gray-600 mb-8 whitespace-pre-line">{{ contest.description }}</p>
-                        
-                        <h3 class="text-xl font-bold mb-4 border-b pb-2">Rules</h3>
-                        <p class="text-gray-600 whitespace-pre-line">{{ contest.rules }}</p>
-                    </div>
-                    
-                    <div class="bg-gray-50 p-6 rounded-xl h-fit">
-                        <h4 class="font-bold text-gray-700 mb-4">Prizes</h4>
-                        <div class="flex items-center gap-3 mb-2 text-gray-600">
-                            <i class="fas fa-gift text-orange-500"></i> {{ contest.prizes }}
-                        </div>
-                        
-                        <div class="mt-8">
-                            {% if contest.status == 'Live' %}
-                                <button class="w-full bg-green-600 text-white py-3 rounded font-bold hover:bg-green-700">Enter Contest</button>
-                            {% elif contest.status == 'Upcoming' %}
-                                <button class="w-full bg-blue-600 text-white py-3 rounded font-bold cursor-not-allowed opacity-50">Register (Coming Soon)</button>
-                            {% else %}
-                                <button class="w-full bg-gray-400 text-white py-3 rounded font-bold cursor-not-allowed">Contest Ended</button>
-                            {% endif %}
-                        </div>
-                    </div>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ["Inter", "sans-serif"] },
+                    colors: {
+                        primary: '#1E4A7A',
+                        darkBg: '#0f172a', // Slate 900
+                        darkCard: '#1e293b', // Slate 800
+                    }
+                }
+            }
+        }
+    </script>
+
+    <script>
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
+    
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .dark ::-webkit-scrollbar-thumb { background: #475569; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        /* Glass Effect */
+        .glass-overlay {
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 dark:bg-darkBg text-gray-800 dark:text-gray-200 font-sans transition-colors duration-300 flex h-screen overflow-hidden">
+
+    <aside class="w-64 bg-white dark:bg-darkCard border-r dark:border-gray-800 flex flex-col transition-colors duration-300 hidden md:flex z-20">
+        <div class="h-16 flex items-center px-6 border-b dark:border-gray-800">
+            <i class="fas fa-code text-[#1E4A7A] dark:text-blue-400 text-2xl mr-3"></i>
+            <span class="font-bold text-xl tracking-tight text-[#1E4A7A] dark:text-white">CampusCode</span>
+        </div>
+
+        <nav class="flex-1 overflow-y-auto py-6 px-3 space-y-1">
+            <a href="{% url 'dashboard' %}" class="flex items-center gap-3 px-4 py-3 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white rounded-xl font-medium transition">
+                <i class="fas fa-th-large w-5"></i> Dashboard
+            </a>
+            <a href="{% url 'problems' %}" class="flex items-center gap-3 px-4 py-3 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white rounded-xl font-medium transition">
+                <i class="fas fa-code w-5"></i> Problem Set
+            </a>
+            <a href="{% url 'contests' %}" class="flex items-center gap-3 px-4 py-3 bg-[#1E4A7A]/10 dark:bg-blue-900/20 text-[#1E4A7A] dark:text-blue-300 rounded-xl font-medium transition">
+                <i class="fas fa-trophy w-5"></i> Contests
+            </a>
+            <a href="#" class="flex items-center gap-3 px-4 py-3 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white rounded-xl font-medium transition">
+                <i class="fas fa-chart-bar w-5"></i> Leaderboard
+            </a>
+            <a href="{% url 'forum' %}" class="flex items-center gap-3 px-4 py-3 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white rounded-xl font-medium transition">
+                <i class="fas fa-comments w-5"></i> Forum
+            </a>
+        </nav>
+
+        <div class="p-4 border-t dark:border-gray-800">
+            <div class="flex items-center gap-3 p-2 rounded-xl bg-gray-50 dark:bg-gray-800/50 border dark:border-gray-700">
+                <div class="w-10 h-10 rounded-full bg-[#1E4A7A] text-white flex items-center justify-center font-bold text-sm">
+                    {{ user.username|slice:":2"|upper }}
+                </div>
+                <div class="overflow-hidden">
+                    <h4 class="text-sm font-bold truncate text-gray-800 dark:text-gray-200">{{ user.username }}</h4>
+                    <span class="text-xs text-gray-500 dark:text-gray-400 block">{{ user.role }}</span>
                 </div>
             </div>
         </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col min-w-0 overflow-hidden bg-gray-50 dark:bg-darkBg transition-colors duration-300">
+        
+        <header class="bg-white dark:bg-darkCard h-16 border-b dark:border-gray-800 flex items-center justify-between px-6 sticky top-0 z-10">
+            <button class="md:hidden text-gray-500 dark:text-gray-400 hover:text-gray-700">
+                <i class="fas fa-bars text-xl"></i>
+            </button>
+
+            <div class="flex items-center gap-4">
+                <a href="{% url 'contests' %}" class="text-gray-500 dark:text-gray-400 hover:text-[#1E4A7A] dark:hover:text-white transition flex items-center gap-2 text-sm font-medium">
+                    <i class="fas fa-arrow-left"></i> <span class="hidden sm:inline">All Contests</span>
+                </a>
+                <div class="h-6 w-px bg-gray-300 dark:bg-gray-700 mx-2 hidden sm:block"></div>
+                <h2 class="text-lg font-bold text-gray-800 dark:text-white truncate max-w-xs sm:max-w-md">{{ contest.title }}</h2>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <button id="theme-toggle" onclick="toggleTheme()" class="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition focus:outline-none">
+                    <i id="theme-toggle-light-icon" class="fas fa-sun hidden"></i>
+                    <i id="theme-toggle-dark-icon" class="fas fa-moon hidden"></i>
+                </button>
+
+                <button id="headerProfileBtn" class="flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full p-1 pr-3 transition border border-transparent hover:border-gray-200 dark:hover:border-gray-600">
+                    <img src="https://ui-avatars.com/api/?name={{ user.username }}&background=1E4A7A&color=fff" class="w-8 h-8 rounded-full" alt="Profile">
+                    <i class="fas fa-chevron-down text-xs text-gray-400"></i>
+                </button>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-6">
+            <div class="max-w-6xl mx-auto space-y-6">
+
+                <div class="bg-white dark:bg-darkCard rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden relative">
+                    <div class="h-2 w-full 
+                        {% if contest.status == 'Live' %}bg-green-500
+                        {% elif contest.status == 'Upcoming' %}bg-blue-500
+                        {% else %}bg-gray-500{% endif %}">
+                    </div>
+                    
+                    <div class="p-8">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                            <div>
+                                <div class="flex items-center gap-3 mb-2">
+                                    {% if contest.status == 'Live' %}
+                                        <span class="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-2 animate-pulse">
+                                            <span class="w-2 h-2 rounded-full bg-green-500"></span> Live Now
+                                        </span>
+                                    {% elif contest.status == 'Upcoming' %}
+                                        <span class="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide">
+                                            Upcoming
+                                        </span>
+                                    {% else %}
+                                        <span class="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide">
+                                            Ended
+                                        </span>
+                                    {% endif %}
+                                    <span class="text-gray-400 text-sm">|</span>
+                                    <span class="text-gray-500 dark:text-gray-400 text-sm font-medium"><i class="fas fa-users mr-1"></i> {{ contest.participants }} Participants</span>
+                                </div>
+                                <h1 class="text-3xl font-bold text-gray-900 dark:text-white">{{ contest.title }}</h1>
+                            </div>
+                            
+                            <div class="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl border border-gray-100 dark:border-gray-700 text-center min-w-[200px]">
+                                <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide font-bold mb-1">Start Time</p>
+                                <p class="text-lg font-bold text-gray-800 dark:text-white">{{ contest.start_time|date:"M d, H:i" }}</p>
+                                <p class="text-xs text-gray-400">{{ contest.duration }} Duration</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    
+                    <div class="lg:col-span-2 space-y-6">
+                        
+                        <div class="bg-white dark:bg-darkCard rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 p-6">
+                            <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                                <i class="fas fa-info-circle text-[#1E4A7A] dark:text-blue-400"></i> About Contest
+                            </h3>
+                            <div class="prose dark:prose-invert max-w-none text-sm text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-line">
+                                {{ contest.description }}
+                            </div>
+                        </div>
+
+                        <div class="bg-white dark:bg-darkCard rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 p-6">
+                            <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                                <i class="fas fa-gavel text-[#1E4A7A] dark:text-blue-400"></i> Rules & Regulations
+                            </h3>
+                            <div class="prose dark:prose-invert max-w-none text-sm text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-line">
+                                {{ contest.rules }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-6">
+                        
+                        <div class="bg-white dark:bg-darkCard rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 p-6 sticky top-6">
+                            <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Registration</h3>
+                            
+                            {% if contest.status == 'Live' %}
+                                <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">The contest is currently live! Click below to enter the arena.</p>
+                                <button class="w-full py-3 rounded-lg bg-green-600 hover:bg-green-700 text-white font-bold shadow-lg shadow-green-500/30 transition transform hover:-translate-y-0.5">
+                                    Enter Arena <i class="fas fa-sign-in-alt ml-2"></i>
+                                </button>
+                            {% elif contest.status == 'Upcoming' %}
+                                <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">Registration is open. Reserve your spot now.</p>
+                                <button class="w-full py-3 rounded-lg bg-[#1E4A7A] hover:bg-blue-800 text-white font-bold shadow-md transition transform hover:-translate-y-0.5">
+                                    Register Now
+                                </button>
+                            {% else %}
+                                <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">This contest has ended. You can view the problems and leaderboard.</p>
+                                <button class="w-full py-3 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition">
+                                    View Leaderboard
+                                </button>
+                            {% endif %}
+                        </div>
+
+                        <div class="bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-900/10 dark:to-orange-900/10 rounded-xl shadow-sm border border-yellow-100 dark:border-yellow-900/30 p-6">
+                            <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                                <i class="fas fa-gift text-orange-500"></i> Prizes
+                            </h3>
+                            <p class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed font-medium">
+                                {{ contest.prizes }}
+                            </p>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <div id="profileOverlay" class="fixed inset-0 z-50 hidden glass-overlay flex items-center justify-center opacity-0 transition-opacity duration-300">
+        <div class="bg-white dark:bg-darkCard w-full max-w-md rounded-2xl shadow-2xl overflow-hidden transform scale-95 transition-transform duration-300" id="profileCard">
+            <div class="h-32 bg-gradient-to-r from-[#1E4A7A] to-blue-600 relative">
+                <button id="closeProfileOverlay" class="absolute top-4 right-4 text-white/80 hover:text-white transition">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="px-8 pb-8 text-center -mt-12 relative">
+                <div class="w-24 h-24 rounded-full border-4 border-white dark:border-darkCard bg-gray-200 mx-auto overflow-hidden shadow-lg mb-4">
+                    <img src="https://ui-avatars.com/api/?name={{ user.username }}&background=1E4A7A&color=fff&size=128" alt="User">
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800 dark:text-white">{{ user.first_name }} {{ user.last_name }}</h2>
+                <p class="text-gray-500 dark:text-gray-400 mb-6">@{{ user.username }} • {{ user.college }}</p>
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <a href="{% url 'profile' %}" class="flex items-center justify-center gap-2 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition font-medium text-sm">
+                        <i class="fas fa-user-edit"></i> Edit Profile
+                    </a>
+                    <a href="{% url 'logout' %}" class="flex items-center justify-center gap-2 py-2.5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/40 transition font-medium text-sm">
+                        <i class="fas fa-sign-out-alt"></i> Sign Out
+                    </a>
+                </div>
+                {% if user.role == 'Admin' %}
+                <a href="{% url 'admin_dashboard' %}" class="block w-full py-3 bg-[#1E4A7A] text-white rounded-lg font-bold shadow hover:bg-blue-900 transition">
+                    <i class="fas fa-shield-alt mr-2"></i> Admin Panel
+                </a>
+                {% endif %}
+            </div>
+        </div>
     </div>
+
+    <script>
+        // 1. Dark Mode Toggle
+        var themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
+        var themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
+
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            themeToggleLightIcon.classList.remove('hidden');
+        } else {
+            themeToggleDarkIcon.classList.remove('hidden');
+        }
+
+        function toggleTheme() {
+            themeToggleDarkIcon.classList.toggle('hidden');
+            themeToggleLightIcon.classList.toggle('hidden');
+            if (localStorage.theme === 'light') {
+                document.documentElement.classList.add('dark');
+                localStorage.theme = 'dark';
+            } else {
+                document.documentElement.classList.remove('dark');
+                localStorage.theme = 'light';
+            }
+        }
+
+        // 2. Profile Overlay Logic
+        const profileBtn = document.getElementById("headerProfileBtn");
+        const profileOverlay = document.getElementById("profileOverlay");
+        const profileCard = document.getElementById("profileCard");
+        const closeProfile = document.getElementById("closeProfileOverlay");
+
+        function openProfile() {
+            profileOverlay.classList.remove("hidden");
+            setTimeout(() => {
+                profileOverlay.classList.remove("opacity-0");
+                profileCard.classList.remove("scale-95");
+                profileCard.classList.add("scale-100");
+            }, 10);
+        }
+
+        function closeProfileFunc() {
+            profileOverlay.classList.add("opacity-0");
+            profileCard.classList.remove("scale-100");
+            profileCard.classList.add("scale-95");
+            setTimeout(() => {
+                profileOverlay.classList.add("hidden");
+            }, 300);
+        }
+
+        profileBtn.addEventListener("click", openProfile);
+        closeProfile.addEventListener("click", closeProfileFunc);
+        profileOverlay.addEventListener("click", (e) => {
+            if(e.target === profileOverlay) closeProfileFunc();
+        });
+    </script>
 </body>
 </html>
