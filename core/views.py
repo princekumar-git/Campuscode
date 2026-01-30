@@ -38,7 +38,7 @@ def signup_view(request):
         user.streak = 1
         user.global_rank = 9999
         user.college_rank = 500
-        user.xp = 10
+        user.xp = 0
         user.save()
 
         login(request, user)
