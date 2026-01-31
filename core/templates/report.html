@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>My Report | CampusCode</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+</head>
+
+<body class="bg-gray-100 dark:bg-darkBg">
+<div class="flex min-h-screen">
+
+   <!-- Sidebar -->
+<aside class="w-64 bg-white dark:bg-darkCard border-r dark:border-gray-800 flex flex-col hidden md:flex">
+    <div class="h-16 flex items-center px-6 border-b dark:border-gray-800">
+        <i class="fas fa-code text-[#1E4A7A] dark:text-blue-400 text-2xl mr-3"></i>
+        <span class="font-bold text-xl text-[#1E4A7A] dark:text-white">CampusCode</span>
+    </div>
+
+    <nav class="flex-1 py-6 px-3 space-y-1">
+        <a href="{% url 'dashboard' %}" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800">
+            <i class="fas fa-th-large w-5"></i> Dashboard
+        </a>
+
+        <a href="{% url 'problems' %}" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800">
+            <i class="fas fa-code w-5"></i> Problem Set
+        </a>
+
+        <a href="{% url 'contests' %}" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800">
+            <i class="fas fa-trophy w-5"></i> Contests
+        </a>
+
+        <!-- ACTIVE -->
+        <a href="{% url 'stats' %}" class="flex items-center gap-3 px-4 py-3 rounded-xl bg-[#1E4A7A]/10 text-[#1E4A7A] font-semibold">
+            <i class="fas fa-chart-bar w-5"></i> My Report
+        </a>
+
+        <a href="{% url 'forum' %}" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800">
+            <i class="fas fa-comments w-5"></i> Forum
+        </a>
+    </nav>
+
+    <div class="p-4 border-t dark:border-gray-800">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-[#1E4A7A] text-white flex items-center justify-center font-bold">
+                {{ request.user.username|slice:":2"|upper }}
+            </div>
+            <div>
+                <p class="text-sm font-semibold">{{ request.user.username }}</p>
+                <p class="text-xs text-gray-500">{{ request.user.role }}</p>
+            </div>
+        </div>
+    </div>
+</aside>
+
+
+    <!-- Main Content -->
+    <main class="flex-1 p-6 overflow-y-auto">
+
+        <h1 class="text-3xl font-bold text-[#1E4A7A] dark:text-blue-400 mb-6">
+            📊 My Learning Report
+        </h1>
+
+        <a href="{% url 'download_report_pdf' %}"class="inline-flex items-center gap-2 px-4 py-2 bg-[#1E4A7A] text-white rounded-lg hover:opacity-90"><i class="fas fa-file-pdf"></i>Download PDF</a>
+
+
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white dark:bg-darkCard p-5 rounded-xl shadow">
+                <p class="text-gray-500">Problems Solved</p>
+                <h2 class="text-3xl font-bold">{{ solved_problems }}</h2>
+            </div>
+
+            <div class="bg-white dark:bg-darkCard p-5 rounded-xl shadow">
+                <p class="text-gray-500">Total Submissions</p>
+                <h2 class="text-3xl font-bold">{{ total_submissions }}</h2>
+            </div>
+
+            <div class="bg-white dark:bg-darkCard p-5 rounded-xl shadow">
+                <p class="text-gray-500">Success Rate</p>
+                <h2 class="text-3xl font-bold">{{ success_rate }}%</h2>
+            </div>
+
+            <div class="bg-white dark:bg-darkCard p-5 rounded-xl shadow">
+                <p class="text-gray-500">XP</p>
+                <h2 class="text-3xl font-bold">{{ request.user.xp }}</h2>
+            </div>
+        </div>
+
+        <!-- Charts -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+
+    <!-- Difficulty Chart -->
+    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow">
+        <h3 class="text-lg font-semibold mb-4">Problems Solved by Difficulty</h3>
+        <canvas id="difficultyChart"></canvas>
+    </div>
+
+    <!-- Activity Chart -->
+    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow">
+        <h3 class="text-lg font-semibold mb-4">Submissions Over Time</h3>
+        <canvas id="activityChart"></canvas>
+    </div>
+
+</div>
+
+
+        <!-- Difficulty Breakdown -->
+        <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow mb-8">
+            <h3 class="text-xl font-semibold mb-4">Difficulty Breakdown</h3>
+
+            {% for level, count in difficulty_stats.items %}
+                <div class="mb-4">
+                    <div class="flex justify-between text-sm mb-1">
+                        <span>{{ level }}</span>
+                        <span>{{ count }}</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="bg-[#1E4A7A] h-2 rounded-full"
+                             style="width: {{ count|add:1 }}0%">
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow">
+            <h3 class="text-xl font-semibold mb-4">Recent Submissions</h3>
+
+            <table class="w-full text-sm">
+                <thead class="text-gray-500 border-b">
+                    <tr>
+                        <th class="text-left py-2">Problem</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sub in recent_submissions %}
+                        <tr class="border-b">
+                            <td class="py-2">{{ sub.problem.title }}</td>
+                            <td class="text-center">
+                                {% if sub.passed %}
+                                    <span class="text-green-600 font-semibold">Passed</span>
+                                {% else %}
+                                    <span class="text-red-500 font-semibold">Failed</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {{ sub.submitted_at|date:"M d, Y" }}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="3" class="text-center text-gray-500 py-6">
+                                No submissions yet
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+    </main>
+</div>
+</body>
+<script>
+    const difficultyChart = new Chart(
+        document.getElementById('difficultyChart'),
+        {
+            type: 'bar',
+            data: {
+                labels: ['Easy', 'Medium', 'Hard'],
+                datasets: [{
+                    data: [
+                        {{ difficulty_stats.Easy }},
+                        {{ difficulty_stats.Medium }},
+                        {{ difficulty_stats.Hard }}
+                    ],
+                    backgroundColor: ['#4ade80', '#facc15', '#f87171']
+                }]
+            }
+        }
+    );
+
+    const activityData = {
+        labels: [{% for d in daily_submissions %}'{{ d.day }}',{% endfor %}],
+        datasets: [{
+            label: 'Submissions',
+            data: [{% for d in daily_submissions %}{{ d.count }},{% endfor %}],
+            borderWidth: 2,
+            fill: false
+        }]
+    };
+
+    new Chart(document.getElementById('activityChart'), {
+        type: 'line',
+        data: activityData
+    });
+</script>
+
+</html>
