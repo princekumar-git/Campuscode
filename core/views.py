@@ -7,6 +7,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
 from django.http import JsonResponse
 from django.db.models import Count
+from django.db.models.functions import TruncDate
 
 # Make sure to import TestCase and Submission explicitly
  
@@ -227,8 +228,41 @@ def profile(request):
 
 @login_required
 def stats(request):
-    return render(request, 'report.html')
+    user = request.user
 
+    total_submissions = Submission.objects.filter(user=user).count()
+    solved_problems = Submission.objects.filter(
+        user=user, passed=True
+    ).values('problem').distinct().count()
+
+    success_rate = (solved_problems / total_submissions * 100) if total_submissions else 0
+
+    difficulty_stats = {
+        'Easy': Submission.objects.filter(user=user, passed=True, problem__difficulty='Easy')
+            .values('problem').distinct().count(),
+        'Medium': Submission.objects.filter(user=user, passed=True, problem__difficulty='Medium')
+            .values('problem').distinct().count(),
+        'Hard': Submission.objects.filter(user=user, passed=True, problem__difficulty='Hard')
+            .values('problem').distinct().count(),
+    }
+
+    # 📈 submissions per day (last 7 days)
+    daily_submissions = (
+        Submission.objects.filter(user=user)
+        .annotate(day=TruncDate('submitted_at'))
+        .values('day')
+        .annotate(count=Count('id'))
+        .order_by('day')
+    )
+
+    return render(request, 'report.html', {
+        'total_submissions': total_submissions,
+        'solved_problems': solved_problems,
+        'success_rate': round(success_rate, 1),
+        'difficulty_stats': difficulty_stats,
+        'daily_submissions': list(daily_submissions),
+    })
+   
 # =========================================
 # 3. Admin Views
 # =========================================
