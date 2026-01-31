@@ -14,6 +14,7 @@ class User(AbstractUser):
     global_rank = models.IntegerField(default=0)
     level = models.IntegerField(default=1)
     xp = models.IntegerField(default=0)
+    problem_solved = models.IntegerField(default=0)
 
     @property
     def xp_percentage(self):

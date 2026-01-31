@@ -155,7 +155,9 @@
                         <div class="flex justify-between items-start">
                             <div>
                                 <p class="text-xs text-gray-500 dark:text-gray-400 uppercase font-bold tracking-wider">Global Rank</p>
-                                <h3 class="text-2xl font-bold text-gray-800 dark:text-white mt-1">#{{ user.global_rank }}</h3>
+                                <h3 class="text-2xl font-bold text-gray-800 dark:text-white mt-1">
+                                    {{ user.global_rank }}</h3>
+                                <p class="text-sm text-gray-400 mt-2">College Rank: <strong class="text-gray-800 dark:text-white">{{ user.college_rank }}</strong></p>
                             </div>
                             <div class="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-300 flex items-center justify-center">
                                 <i class="fas fa-globe"></i>
@@ -170,7 +172,9 @@
                         <div class="flex justify-between items-start">
                             <div>
                                 <p class="text-xs text-gray-500 dark:text-gray-400 uppercase font-bold tracking-wider">Problems Solved</p>
-                                <h3 class="text-2xl font-bold text-gray-800 dark:text-white mt-1">42</h3>
+                                <h3 class="text-2xl font-bold text-gray-800 dark:text-white mt-1">
+                                    {{ user.problem_solved }}
+                                </h3>
                             </div>
                             <div class="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-300 flex items-center justify-center">
                                 <i class="fas fa-check-circle"></i>
