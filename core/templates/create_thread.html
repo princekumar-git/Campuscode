@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Create Thread</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 dark:bg-darkBg">
+
+<div class="max-w-3xl mx-auto p-6">
+    <h1 class="text-2xl font-bold mb-6">Create New Thread</h1>
+
+    <form method="post">
+        {% csrf_token %}
+
+        <input type="text" name="title" required
+            placeholder="Thread title"
+            class="w-full p-3 border rounded mb-4">
+
+        <select name="category" class="w-full p-3 border rounded mb-4">
+            <option value="">Select category</option>
+            {% for cat in categories %}
+                <option value="{{ cat.id }}">{{ cat.name }}</option>
+            {% endfor %}
+        </select>
+
+        <textarea name="content" rows="6" required
+            placeholder="Describe your question or discussion..."
+            class="w-full p-3 border rounded mb-4"></textarea>
+
+        <button class="bg-[#1E4A7A] text-white px-6 py-2 rounded hover:bg-[#163a61]">
+            Create Thread
+        </button>
+    </form>
+</div>
+
+</body>
+</html>

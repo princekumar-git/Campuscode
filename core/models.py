@@ -95,11 +95,75 @@ class Contest(models.Model):
     def __str__(self):
         return self.title
 
-class ForumPost(models.Model):
+# =========================
+# Forum Models (Student Only)
+# =========================
+
+class ForumCategory(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+
+    def __str__(self):
+        return self.name
+
+
+class ForumThread(models.Model):
+    STATUS_CHOICES = [
+        ('OPEN', 'Open'),
+        ('CLOSED', 'Closed'),
+    ]
+
     title = models.CharField(max_length=200)
     content = models.TextField()
     author = models.ForeignKey(User, on_delete=models.CASCADE)
-    date_posted = models.DateTimeField(default=timezone.now)
+    category = models.ForeignKey(
+        ForumCategory,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+    status = models.CharField(
+        max_length=10,
+        choices=STATUS_CHOICES,
+        default='OPEN'
+    )
+    views = models.IntegerField(default=0)
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.title
+
+
+class ForumReply(models.Model):
+    thread = models.ForeignKey(
+        ForumThread,
+        on_delete=models.CASCADE,
+        related_name='replies'
+    )
+    content = models.TextField()
+    author = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Reply by {self.author.username}"
+
+
+class ForumVote(models.Model):
+    reply = models.ForeignKey(
+        ForumReply,
+        on_delete=models.CASCADE,
+        related_name='votes'
+    )
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    value = models.IntegerField(choices=[(1, 'Upvote'), (-1, 'Downvote')])
+
+    class Meta:
+        unique_together = ('reply', 'user')
+    
+    def __str__(self):
+        return f"{self.user.username} voted {self.value}"
+
 
     def __str__(self):
         return self.title
