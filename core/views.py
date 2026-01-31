@@ -33,6 +33,47 @@ from .models import (
 
 PISTON_API = "https://emkc.org/api/v2/piston/execute"
 
+
+def compute_and_update_ranks():
+    """Recalculate and persist global and college ranks for all Students.
+
+    Ranking rules:
+    - Higher XP -> better (lower) rank (1 is best).
+    - Users with equal XP receive the same rank (dense ranking).
+    """
+    students = User.objects.filter(role='Student').order_by('-xp', 'username')
+
+    to_update = []
+
+    # Global ranks (dense ranking)
+    prev_xp = None
+    rank = 0
+    for u in students:
+        if u.xp != prev_xp:
+            rank += 1
+            prev_xp = u.xp
+        if u.global_rank != rank:
+            u.global_rank = rank
+            to_update.append(u)
+
+    # College ranks (per college)
+    colleges = students.values_list('college', flat=True).distinct()
+    for college in colleges:
+        col_students = students.filter(college=college)
+        prev_xp = None
+        rank = 0
+        for u in col_students:
+            if u.xp != prev_xp:
+                rank += 1
+                prev_xp = u.xp
+            if u.college_rank != rank:
+                u.college_rank = rank
+                if u not in to_update:
+                    to_update.append(u)
+
+    if to_update:
+        User.objects.bulk_update(to_update, ['global_rank', 'college_rank'])
+
 # =========================================
 # 1. Authentication Views 
 # =========================================
@@ -56,8 +97,9 @@ def signup_view(request):
         user.first_name = name 
         user.role = 'Student'
         user.streak = 1
-        user.global_rank = 9999
-        user.college_rank = 500
+        highest_rank = User.objects.filter(role='Student').order_by('global_rank').first()
+        user.global_rank = highest_rank.global_rank + 1 if highest_rank else 1
+        user.college_rank = highest_rank.college_rank + 1 if highest_rank else 1
         user.xp = 0
         user.save()
 
@@ -98,6 +140,8 @@ def logout_view(request):
 
 @login_required
 def dashboard(request):
+    # Ensure ranks reflect current XP before rendering dashboard
+    compute_and_update_ranks()
     return render(request, 'dashboard.html', {'user': request.user})
 
 @login_required
@@ -148,6 +192,9 @@ def add_reply(request, thread_id):
         request.user.xp += 5
         request.user.save()
 
+        # Update ranks since XP changed
+        compute_and_update_ranks()
+
     return redirect('forum_thread_detail', thread_id=thread.id)
 
 @login_required
@@ -165,6 +212,9 @@ def upvote_reply(request, reply_id):
     else:
         reply.author.xp += 2
         reply.author.save()
+
+        # Update ranks since XP changed
+        compute_and_update_ranks()
 
     return redirect('forum_thread_detail', thread_id=reply.thread.id)
 
@@ -219,6 +269,9 @@ def create_thread(request):
         request.user.xp += 10
         request.user.save()
 
+        # Update ranks since XP changed
+        compute_and_update_ranks()
+
         return redirect('forum')
 
     categories = ForumCategory.objects.all()
@@ -265,6 +318,32 @@ def profile(request):
         return redirect('profile')
         
     return render(request, 'profile.html')
+
+
+@login_required
+def delete_account(request):
+    """Deletes the authenticated user's account.
+
+    Requires a POST with a `confirm_username` field that matches the
+    current `request.user.username` to prevent accidental deletions.
+    """
+    if request.method != 'POST':
+        messages.error(request, 'Invalid request method.')
+        return redirect('profile')
+
+    user = request.user
+    confirm_username = request.POST.get('confirm_username', '')
+
+    if confirm_username != user.username:
+        messages.error(request, 'Username confirmation did not match. Account not deleted.')
+        return redirect('profile')
+
+    # Logout first then delete the user (cascades to related models)
+    logout(request)
+    user.delete()
+    messages.success(request, 'Your account has been deleted.')
+    return redirect('index')
+
 
 @login_required
 def stats(request):
@@ -469,6 +548,9 @@ def submit_solution(request, id):
                 request.user.xp += problem.points
                 request.user.save()
                 msg += f" You earned +{problem.points} XP."
+
+                # Update ranks since XP changed
+                compute_and_update_ranks()
             
             Submission.objects.create(user=request.user, problem=problem, code=code, passed=True)
             return JsonResponse({"status": "success", "message": msg})

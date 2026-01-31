@@ -20,6 +20,7 @@ urlpatterns = [
     path('forum/thread/<int:thread_id>/', views.forum_thread_detail, name='forum_thread_detail'),
 
     path('profile/', views.profile, name='profile'),
+    path('profile/delete/', views.delete_account, name='delete_account'),
     path('stats/', views.stats, name='stats'),
     path('stats/download/', views.download_report_pdf, name='download_report_pdf'),
     path('report/download/', views.download_report_pdf, name='download_report_pdf'),

@@ -14,6 +14,7 @@ class User(AbstractUser):
     global_rank = models.IntegerField(default=0)
     level = models.IntegerField(default=1)
     xp = models.IntegerField(default=0)
+    problem_solved = models.IntegerField(default=0)
 
     @property
     def xp_percentage(self):
@@ -163,7 +164,3 @@ class ForumVote(models.Model):
     
     def __str__(self):
         return f"{self.user.username} voted {self.value}"
-
-
-    def __str__(self):
-        return self.title
