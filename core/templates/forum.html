@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CampusCode Forum</title>
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class'
+        }
+    </script>
+</head>
+
+<body class="bg-gray-100 dark:bg-darkBg text-gray-800 dark:text-gray-100">
+
+<div class="flex min-h-screen">
+
+    <!-- ================= Sidebar ================= -->
+    <aside class="w-64 bg-white dark:bg-darkCard border-r dark:border-gray-800 flex flex-col transition-colors duration-300 hidden md:flex z-20">
+        <div class="h-16 flex items-center px-6 border-b dark:border-gray-800">
+            <i class="fas fa-code text-[#1E4A7A] dark:text-blue-400 text-2xl mr-3"></i>
+            <span class="font-bold text-xl tracking-tight text-[#1E4A7A] dark:text-white">CampusCode</span>
+        </div>
+
+        <nav class="flex-1 overflow-y-auto py-6 px-3 space-y-1">
+            <a href="{% url 'dashboard' %}" class="flex items-center gap-3 px-4 py-3 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white rounded-xl font-medium transition">
+                <i class="fas fa-th-large w-5"></i> Dashboard
+            </a>
+            <a href="{% url 'problems' %}" class="flex items-center gap-3 px-4 py-3 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white rounded-xl font-medium transition">
+                <i class="fas fa-code w-5"></i> Problem Set
+            </a>
+            <a href="{% url 'contests' %}" class="flex items-center gap-3 px-4 py-3 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white rounded-xl font-medium transition">
+                <i class="fas fa-trophy w-5"></i> Contests
+            </a>
+            <a href="#" class="flex items-center gap-3 px-4 py-3 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white rounded-xl font-medium transition">
+                <i class="fas fa-chart-bar w-5"></i> Leaderboard
+            </a>
+            <a href="{% url 'forum' %}" class="flex items-center gap-3 px-4 py-3 bg-[#1E4A7A]/10 dark:bg-blue-900/20 text-[#1E4A7A] dark:text-blue-300 rounded-xl font-medium transition">
+                <i class="fas fa-comments w-5"></i> Forum
+            </a>
+        </nav>
+
+        <div class="p-4 border-t dark:border-gray-800">
+            <div class="flex items-center gap-3 p-2 rounded-xl bg-gray-50 dark:bg-gray-800/50 border dark:border-gray-700">
+                <div class="w-10 h-10 rounded-full bg-[#1E4A7A] text-white flex items-center justify-center font-bold text-sm">
+                    {{ user.username|slice:":2"|upper }}
+                </div>
+                <div class="overflow-hidden">
+                    <h4 class="text-sm font-bold truncate text-gray-800 dark:text-gray-200">{{ user.username }}</h4>
+                    <span class="text-xs text-gray-500 dark:text-gray-400 block">{{ user.role }}</span>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ================= Main Forum Content ================= -->
+    <main class="flex-1 p-6 overflow-y-auto">
+
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-3xl font-bold text-[#1E4A7A] dark:text-blue-400">
+                Student Forum
+            </h1>
+            <a href="{% url 'create_thread' %}"
+               class="bg-[#1E4A7A] hover:bg-[#163a61] text-white px-5 py-2 rounded-lg font-medium transition">
+                + New Thread
+            </a>
+        </div>
+
+        <!-- Threads -->
+        <div class="space-y-4">
+            {% for thread in threads %}
+                <div class="bg-white dark:bg-darkCard border dark:border-gray-800 rounded-xl p-5 hover:shadow transition">
+                    <a href="{% url 'forum_thread_detail' thread.id %}"
+                       class="text-xl font-semibold text-[#1E4A7A] dark:text-blue-400 hover:underline">
+                        {{ thread.title }}
+                    </a>
+
+                    <p class="text-gray-600 dark:text-gray-400 mt-2">
+                        {{ thread.content|truncatewords:30 }}
+                    </p>
+
+                    <div class="flex justify-between items-center mt-4 text-sm text-gray-500 dark:text-gray-400">
+                        <div>
+                            👤 {{ thread.author.username }} · {{ thread.created_at|date:"M d, Y" }}
+                        </div>
+                        <div class="flex gap-4">
+                            💬 {{ thread.reply_count }}
+                            👁 {{ thread.views }}
+                        </div>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="text-center text-gray-500 dark:text-gray-400 py-20">
+                    No discussions yet. Start the first one 🚀
+                </div>
+            {% endfor %}
+        </div>
+
+    </main>
+
+</div>
+</body>
+</html>

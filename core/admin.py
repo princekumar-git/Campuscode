@@ -1,8 +1,20 @@
 from django.contrib import admin
-from .models import User, Problem, Contest, ForumPost
+from .models import (
+    User,
+    Problem,
+    Contest,
+    ForumCategory,
+    ForumThread,
+    ForumReply,
+    ForumVote,
+)
+
 
 # Register your models here.
 admin.site.register(User)
 admin.site.register(Problem)
 admin.site.register(Contest)
-admin.site.register(ForumPost)
+admin.site.register(ForumCategory)
+admin.site.register(ForumThread)
+admin.site.register(ForumReply)
+admin.site.register(ForumVote)

@@ -9,7 +9,19 @@ from django.http import JsonResponse
 from django.db.models import Count
 
 # Make sure to import TestCase and Submission explicitly
-from .models import User, Problem, Contest, ForumPost, TestCase, Submission
+ 
+from .models import (
+    User,
+    Problem,
+    Contest,
+    TestCase,
+    Submission,
+    ForumCategory,
+    ForumThread,
+    ForumReply,
+    ForumVote,
+)
+
 
 PISTON_API = "https://emkc.org/api/v2/piston/execute"
 
@@ -102,8 +114,94 @@ def contest_overview(request, id):
 
 @login_required
 def forum(request):
-    posts = ForumPost.objects.order_by('-date_posted')
-    return render(request, 'forum.html', {'posts': posts})
+    threads = ForumThread.objects.select_related('author', 'category') \
+        .annotate(reply_count=Count('replies')) \
+        .order_by('-created_at')
+
+    categories = ForumCategory.objects.all()
+
+    return render(request, 'forum.html', {
+        'threads': threads,
+        'categories': categories,
+    })
+
+@login_required
+def add_reply(request, thread_id):
+    thread = get_object_or_404(ForumThread, id=thread_id)
+
+    if request.method == 'POST':
+        ForumReply.objects.create(
+            thread=thread,
+            content=request.POST.get('content'),
+            author=request.user
+        )
+
+        # XP reward
+        request.user.xp += 5
+        request.user.save()
+
+    return redirect('forum_thread_detail', thread_id=thread.id)
+
+@login_required
+def upvote_reply(request, reply_id):
+    reply = get_object_or_404(ForumReply, id=reply_id)
+
+    vote, created = ForumVote.objects.get_or_create(
+        reply=reply,
+        user=request.user,
+        defaults={'value': 1}
+    )
+
+    if not created:
+        vote.delete()  # toggle off
+    else:
+        reply.author.xp += 2
+        reply.author.save()
+
+    return redirect('forum_thread_detail', thread_id=reply.thread.id)
+
+@login_required
+def create_thread(request):
+    if request.method == 'POST':
+        title = request.POST.get('title')
+        content = request.POST.get('content')
+        category_id = request.POST.get('category')
+
+        ForumThread.objects.create(
+            title=title,
+            content=content,
+            author=request.user,
+            category_id=category_id if category_id else None
+        )
+
+        # XP reward for asking a question
+        request.user.xp += 10
+        request.user.save()
+
+        return redirect('forum')
+
+    categories = ForumCategory.objects.all()
+    return render(request, 'create_thread.html', {
+        'categories': categories
+    })
+
+@login_required
+def forum_thread_detail(request, thread_id):
+    thread = get_object_or_404(ForumThread, id=thread_id)
+
+    # Increment views safely
+    thread.views += 1
+    thread.save(update_fields=['views'])
+
+    replies = ForumReply.objects.filter(thread=thread) \
+        .select_related('author') \
+        .annotate(vote_count=Count('votes'))
+
+    return render(request, 'forum_thread_detail.html', {
+        'thread': thread,
+        'replies': replies,
+    })
+
 
 @login_required
 def profile(request):
