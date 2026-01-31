@@ -21,6 +21,10 @@ urlpatterns = [
 
     path('profile/', views.profile, name='profile'),
     path('stats/', views.stats, name='stats'),
+    path('stats/download/', views.download_report_pdf, name='download_report_pdf'),
+    path('report/download/', views.download_report_pdf, name='download_report_pdf'),
+
+
 
     path('forum/thread/<int:thread_id>/reply/', views.add_reply, name='add_reply'),
     path('forum/reply/<int:reply_id>/upvote/', views.upvote_reply, name='upvote_reply'),
